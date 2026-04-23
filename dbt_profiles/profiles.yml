@@ -16,7 +16,7 @@ financial_data_dbt_databricks:
       catalog: workspace
       schema: "finance"
 
-      http_path: "{{ env_var('DBT_HTTP_PATH') }}"
+      http_path: /sql/1.0/warehouses/1134b102df4efb1b
 
       # The workspace host / token are provided by Databricks
       # see databricks.yml for the workspace host used for 'dev'
@@ -30,7 +30,7 @@ financial_data_dbt_databricks:
       catalog: workspace
       schema: finance
 
-      http_path: "{{ env_var('DBT_HTTP_PATH') }}"
+      http_path: /sql/1.0/warehouses/1134b102df4efb1b
 
       # The workspace host / token are provided by Databricks
       # see databricks.yml for the workspace host used for 'prod'
