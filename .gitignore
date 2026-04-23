@@ -5,8 +5,10 @@ dist/
 __pycache__/
 *.egg-info
 .venv/
+.env
 scratch/**
 !scratch/README.md
+uv.lock
 
 # dbt
 target/
