@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: silver_hourly_prices
+    description: "Cleaned and typed hourly price snapshots, deduplicated per symbol and extraction hour"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+        data_tests:
+          - not_null
+      - name: extracted_at
+        description: "Extraction timestamp (UTC)"
+        data_tests:
+          - not_null
+      - name: current_price
+        description: "Current stock price (DOUBLE)"
+      - name: volume
+        description: "Trading volume"
+      - name: market_cap
+        description: "Market capitalization"
+
+  - name: silver_company_info
+    description: "Cleaned and typed company profiles, deduplicated per symbol and extraction"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+        data_tests:
+          - not_null
+      - name: extracted_at
+        description: "Extraction timestamp (UTC)"
+        data_tests:
+          - not_null
+      - name: company_name
+        description: "Full company name"
+      - name: sector
+        description: "Market sector classification"
+      - name: industry
+        description: "Industry classification"
+      - name: trailing_pe
+        description: "Trailing price-to-earnings ratio"
+      - name: forward_pe
+        description: "Forward price-to-earnings ratio"

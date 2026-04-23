@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "databricks-sdk>=0.105.0",
+    "dbt-core>=1.7.19",
+    "dbt-databricks>=1.7.3",
     "python-dotenv>=1.2.2",
     "requests>=2.33.1",
     "yfinance>=0.2.43",

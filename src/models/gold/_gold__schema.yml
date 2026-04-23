@@ -1,0 +1,54 @@
+version: 2
+
+models:
+  - name: gold_market_summary
+    description: "Latest price snapshot per symbol enriched with company profile data"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_name
+        description: "Full company name"
+      - name: sector
+        description: "Market sector"
+      - name: current_price
+        description: "Most recent price"
+      - name: market_cap
+        description: "Market capitalization"
+      - name: trailing_pe
+        description: "Trailing P/E ratio"
+
+  - name: gold_sector_performance
+    description: "Sector-level aggregations including VWAP, average PE, and total market cap"
+    columns:
+      - name: sector
+        description: "Market sector"
+        data_tests:
+          - unique
+          - not_null
+      - name: num_companies
+        description: "Number of companies in sector"
+      - name: total_market_cap
+        description: "Sum of market caps in sector"
+      - name: vwap
+        description: "Volume-weighted average price across sector"
+
+  - name: gold_price_analytics
+    description: "Per-symbol technical analytics: trend signals, 52-week positioning, and daily changes"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+        data_tests:
+          - unique
+          - not_null
+      - name: price_change_pct
+        description: "Daily price change percentage"
+      - name: trend_signal
+        description: "BULLISH / BEARISH / NEUTRAL based on moving average crossovers"
+        data_tests:
+          - accepted_values:
+              values: ['BULLISH', 'BEARISH', 'NEUTRAL']
+      - name: range_52w_pct
+        description: "Position within 52-week range (0=low, 100=high)"

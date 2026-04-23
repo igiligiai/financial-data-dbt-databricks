@@ -1,0 +1,7 @@
+version: 2
+
+sources:
+  - name: yfinance_raw
+    description: "Raw financial data from yfinance API, stored as JSON in Unity Catalog Volumes"
+    meta:
+      volume_path: "/Volumes/api_data/raw/yfinance"

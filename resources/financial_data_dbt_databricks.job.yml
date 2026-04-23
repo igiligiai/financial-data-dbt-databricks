@@ -14,17 +14,25 @@ resources:
       #    - your_email@example.com
 
       tasks:
-        - task_key: dbt
+        - task_key: dbt_run
           environment_key: default
           dbt_task:
             project_directory: ../
-            # The default schema, catalog, etc. are defined in ../dbt_profiles/profiles.yml
             profiles_directory: dbt_profiles/
             commands:
-              # The dbt commands to run (see also the dev/prod profiles in dbt_profiles/profiles.yml)
               - 'dbt deps --target=${bundle.target}'
-              - 'dbt seed --target=${bundle.target}'
               - 'dbt run --target=${bundle.target}'
+
+        - task_key: dbt_test
+          depends_on:
+            - task_key: dbt_run
+          environment_key: default
+          dbt_task:
+            project_directory: ../
+            profiles_directory: dbt_profiles/
+            commands:
+              - 'dbt deps --target=${bundle.target}'
+              - 'dbt test --target=${bundle.target}'
 
       environments:
         - environment_key: default

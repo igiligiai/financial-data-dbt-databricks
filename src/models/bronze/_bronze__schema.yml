@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: bronze_hourly_prices
+    description: "Raw hourly price snapshots ingested from JSON files in Unity Catalog Volumes"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+      - name: extracted_at
+        description: "Timestamp when data was extracted (string)"
+      - name: current_price
+        description: "Current stock price at extraction time"
+      - name: error
+        description: "Error message if extraction failed; NULL for valid records"
+
+  - name: bronze_company_info
+    description: "Raw company profile data ingested from JSON files in Unity Catalog Volumes"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+      - name: extracted_at
+        description: "Timestamp when data was extracted (string)"
+      - name: company_name
+        description: "Full company name"
+      - name: sector
+        description: "Market sector classification"
+      - name: error
+        description: "Error message if extraction failed; NULL for valid records"
