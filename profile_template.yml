@@ -11,7 +11,7 @@ prompts:
     hide_input: true
   http_path:
     hint: 'HTTP path of SQL warehouse to use'
-    default: /sql/1.0/warehouses/1134b102df4efb1b
+    default: /sql/1.0/warehouses/xxxxxxxxxx
   catalog:
     hint: 'initial catalog'
     default: workspace
