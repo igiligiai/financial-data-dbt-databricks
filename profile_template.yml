@@ -1,0 +1,24 @@
+# This file defines prompts with defaults for dbt initializaton.
+# It is used when the `dbt init` command is invoked.
+#
+fixed:
+  type: databricks
+prompts:
+  host:
+    default: dbc-3390368a-2a91.cloud.databricks.com
+  token:
+    hint: 'personal access token to use, dapiXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX'
+    hide_input: true
+  http_path:
+    hint: 'HTTP path of SQL warehouse to use'
+    default: /sql/1.0/warehouses/1134b102df4efb1b
+  catalog:
+    hint: 'initial catalog'
+    default: workspace
+  schema:
+    hint: 'default schema where dbt will build objects'
+    default: finance
+  threads:
+    hint: 'threads to use during development, 1 or more'
+    type: 'int'
+    default: 4
