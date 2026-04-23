@@ -3,11 +3,10 @@ name = "financial-data-dbt-databricks"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.14"
 dependencies = [
-    "databricks-sdk>=0.105.0",
-    "dbt-core>=1.7.19",
-    "dbt-databricks>=1.7.3",
+    "databricks-sdk>=0.41.0,<0.78.0",
+    "dbt-databricks>=1.8.0,<1.12.0",
     "python-dotenv>=1.2.2",
     "requests>=2.33.1",
     "yfinance>=0.2.43",
