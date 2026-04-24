@@ -1,11 +1,20 @@
 {{
   config(
-    materialized='table'
+    materialized='incremental',
+    incremental_strategy='merge',
+    unique_key=['symbol', 'extracted_at'],
+    on_schema_change='append_new_columns',
+    post_hook='OPTIMIZE {{ this }} ZORDER BY (extracted_at, symbol)'
   )
 }}
 
 with source as (
   select * from {{ ref('bronze_hourly_prices') }}
+  {% if is_incremental() %}
+  where to_timestamp(extracted_at, 'yyyy-MM-dd HH:mm:ss') > (
+    select max(extracted_at) from {{ this }}
+  )
+  {% endif %}
 ),
 
 typed as (

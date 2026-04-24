@@ -14,31 +14,19 @@ with best as (
   where extracted_at >= date_trunc('day', current_date())
     and extracted_at <  date_trunc('day', current_date() + interval 1 day)
   group by symbol
-),
-
-ranked as (
-  select
-    symbol,
-    extracted_at,
-    day_high,
-    previous_close,
-    round(day_high - previous_close, 2)                           as daily_gain_price,
-    round(
-      (day_high - previous_close) / nullif(previous_close, 0) * 100, 2
-    )                                                             as daily_gain_percentage
-  from best
-  order by daily_gain_percentage desc
 )
 
 select
   c.symbol,
   c.company_name,
   c.sector,
-  cast(r.extracted_at as date)                                              as extracted_at_date,
-  date_format(r.extracted_at, 'HH:mm:ss')                                  as extracted_at_time,
-  r.daily_gain_price,
-  r.daily_gain_percentage
-from ranked as r
+  cast(b.extracted_at as date)                                              as extracted_at_date,
+  date_format(b.extracted_at, 'HH:mm:ss')                                  as extracted_at_time,
+  round(b.day_high - b.previous_close, 2)                                  as daily_gain_price,
+  round(
+    (b.day_high - b.previous_close) / nullif(b.previous_close, 0) * 100, 2
+  )                                                                         as daily_gain_percentage
+from best as b
 join {{ ref('silver_company_info') }} as c
-  on r.symbol = c.symbol
-order by r.daily_gain_percentage desc
+  on b.symbol = c.symbol
+order by daily_gain_percentage desc
