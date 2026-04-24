@@ -2,6 +2,14 @@ resources:
   jobs:
     financial_data_dbt_databricks_job:
       name: financial_data_dbt_databricks_job
+      email_notifications:
+        on_failure:
+          - anthony.igiligi@gmail.com
+        on_success:
+          - anthony.igiligi@gmail.com
+      notification_settings:
+        no_alert_for_skipped_runs: true
+        no_alert_for_canceled_runs: true
 
       trigger:
         # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger

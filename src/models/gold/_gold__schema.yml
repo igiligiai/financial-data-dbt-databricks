@@ -35,6 +35,27 @@ models:
       - name: vwap
         description: "Volume-weighted average price across sector"
 
+  - name: gold_best_performing_today
+    description: "Top 10 best performing stocks today by daily gain percentage (day high vs previous close)"
+    columns:
+      - name: symbol
+        description: "Stock ticker symbol"
+        data_tests:
+          - unique
+          - not_null
+      - name: company_name
+        description: "Full company name"
+      - name: sector
+        description: "Market sector"
+      - name: extracted_at_date
+        description: "Date of the latest price extraction"
+      - name: extracted_at_time
+        description: "Time of the latest price extraction (HH:mm:ss)"
+      - name: daily_gain_price
+        description: "Absolute daily gain (day high minus previous close)"
+      - name: daily_gain_percentage
+        description: "Percentage daily gain relative to previous close"
+
   - name: gold_price_analytics
     description: "Per-symbol technical analytics: trend signals, 52-week positioning, and daily changes"
     columns:
