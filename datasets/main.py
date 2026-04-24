@@ -63,9 +63,9 @@ if __name__ == "__main__":
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H")
     hourly_prices = f"hourly_prices_{ts}0000.json"
 
-    # print("=== Extracting hourly price data ===")
-    # hourly_path = run_hourly_extraction()
-    # print(f"Hourly data saved to: {hourly_path}")
+    print("=== Extracting hourly price data ===")
+    hourly_path = run_hourly_extraction()
+    print(f"Hourly data saved to: {hourly_path}")
 
     # print("\n=== Extracting company info ===")
     # company_path = run_company_info_extraction()
@@ -74,5 +74,5 @@ if __name__ == "__main__":
     # check_databricks_connection()
     upload_files_to_databricks(
         path / hourly_prices, f"{BASE_PATH}/hourly_prices/{hourly_prices}")
-    upload_files_to_databricks(
-        path / "company_info.json", f"{BASE_PATH}/company_info/company_info.json")
+    # upload_files_to_databricks(
+    #     path / "company_info.json", f"{BASE_PATH}/company_info/company_info.json")
