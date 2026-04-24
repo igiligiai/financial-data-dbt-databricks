@@ -6,13 +6,12 @@
 
 with source as (
   select * from {{ ref('bronze_hourly_prices') }}
-  where error is null
 ),
 
 typed as (
   select
     symbol,
-    to_timestamp(extracted_at, 'yyyy-MM-dd HH:mm:ss')   as extracted_at,
+    to_timestamp(extracted_at, 'yyyy-MM-dd HH:mm:ss')     as extracted_at,
     cast(current_price as double)                         as current_price,
     cast(day_high as double)                              as day_high,
     cast(day_low as double)                               as day_low,
@@ -27,6 +26,9 @@ typed as (
     _file_modified_at
   from source
   where symbol is not null
+    and current_price is not null
+    and day_high is not null
+    and day_low is not null
 ),
 
 deduplicated as (

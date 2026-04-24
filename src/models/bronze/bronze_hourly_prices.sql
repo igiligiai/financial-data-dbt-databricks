@@ -17,7 +17,6 @@ select
   two_hundred_day_average :: STRING   as two_hundred_day_average,
   fifty_two_week_high :: STRING       as fifty_two_week_high,
   fifty_two_week_low :: STRING        as fifty_two_week_low,
-  error :: STRING                     as error,
   _metadata.file_path                 as _source_file,
   _metadata.file_modification_time    as _file_modified_at
 from read_files(

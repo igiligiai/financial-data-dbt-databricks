@@ -49,6 +49,7 @@ models:
         description: "BULLISH / BEARISH / NEUTRAL based on moving average crossovers"
         data_tests:
           - accepted_values:
-              values: ['BULLISH', 'BEARISH', 'NEUTRAL']
+              arguments:
+                values: ['BULLISH', 'BEARISH', 'NEUTRAL']
       - name: range_52w_pct
         description: "Position within 52-week range (0=low, 100=high)"
