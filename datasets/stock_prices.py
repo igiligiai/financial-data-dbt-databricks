@@ -55,8 +55,7 @@ def get_hourly_stock_data(symbol: str) -> Dict:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
         info = yf.Ticker(symbol).info or {}
-
-        return {
+        data = {
             "symbol": symbol,
             "extracted_at": datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S"),
             "current_price": _safe_round(info.get("currentPrice")),
@@ -70,8 +69,10 @@ def get_hourly_stock_data(symbol: str) -> Dict:
             "fifty_two_week_high": _safe_round(info.get("fiftyTwoWeekHigh")),
             "fifty_two_week_low": _safe_round(info.get("fiftyTwoWeekLow")),
         }
+        logger.info("Hourly data extracted successfully for %s", symbol)
+        return data
     except Exception as e:
-        logger.error("Hourly data error for %s: %s", symbol, e)
+        logger.error("Hourly data extraction failed for %s: %s", symbol, e)
         return {"error": "Lookup Error", "symbol": symbol, "message": str(e)}
 
 
