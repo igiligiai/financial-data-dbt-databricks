@@ -17,12 +17,33 @@ resources:
           interval: 1
           unit: DAYS
 
-      #email_notifications:
-      #  on_failure:
-      #    - your_email@example.com
+      email_notifications:
+       on_failure:
+         - anthony.igiligi@gmail.com
+       on_success:
+         - anthony.igiligi@gmail.com
 
       tasks:
+        - task_key: hourly_extraction
+          environment_key: default
+          command:
+            python_task:
+              python_file: datasets/databricks_extractor.py
+              python_arguments:
+                - run_hourly_extraction
+
+        - task_key: company_info_extraction
+          environment_key: default
+          command:
+            python_task:
+              python_file: datasets/databricks_extractor.py
+              python_arguments:
+                - run_company_info_extraction
+
         - task_key: dbt_run
+          depends_on:
+            - task_key: company_info_extraction
+            - task_key: hourly_extraction
           environment_key: default
           dbt_task:
             project_directory: ../
@@ -48,3 +69,4 @@ resources:
             environment_version: "2"
             dependencies:
               - dbt-databricks>=1.8.0,<2.0.0
+              - yfinance>=0.2.43
