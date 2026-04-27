@@ -1,0 +1,49 @@
+name: Deploy Job
+
+on:
+  workflow_call:
+    inputs:
+      target:
+        description: "Databricks bundle target to deploy"
+        required: true
+        type: string
+    secrets:
+      DATABRICKS_HOST:
+        required: true
+      DATABRICKS_TOKEN:
+        required: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+      - name: Validate Databricks bundle (dev)
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle validate -t dev
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: validate
+    environment: ${{ inputs.target }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Databricks CLI
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+      - name: Deploy Databricks bundle
+        env:
+          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+        run: databricks bundle deploy --target "${{ inputs.target }}"
