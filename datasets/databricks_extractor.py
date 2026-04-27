@@ -2,8 +2,15 @@ import json
 from datetime import datetime, timezone
 from typing import Dict, List
 import logging
-from datasets.stock_prices import (extract_company_info,
-                                   extract_hourly_prices)
+
+try:
+    from datasets.stock_prices import (
+        extract_company_info,
+        extract_hourly_prices,
+    )
+except ModuleNotFoundError:
+    # Supports direct execution: `python datasets/databricks_extractor.py`
+    from stock_prices import extract_company_info, extract_hourly_prices
 
 BASE_PATH = "/Volumes/api_data/raw/yfinance"
 
