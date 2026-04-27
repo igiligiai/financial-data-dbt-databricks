@@ -2,29 +2,54 @@ resources:
   jobs:
     financial_data_dbt_databricks_job:
       name: financial_data_dbt_databricks_job
+      email_notifications:
+        on_failure:
+          - anthony.igiligi@gmail.com
+        on_success:
+          - anthony.igiligi@gmail.com
+      notification_settings:
+        no_alert_for_skipped_runs: true
+        no_alert_for_canceled_runs: true
 
       trigger:
         # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger
         periodic:
           interval: 1
-          unit: DAYS
+          unit: HOURS
 
-      #email_notifications:
-      #  on_failure:
-      #    - your_email@example.com
+      email_notifications:
+       on_failure:
+         - anthony.igiligi@gmail.com
+       on_success:
+         - anthony.igiligi@gmail.com
 
       tasks:
-        - task_key: dbt
+        - task_key: extract_prices
+          environment_key: python_env
+          spark_python_task:
+            python_file: ../datasets/databricks_extractor.py
+
+        - task_key: dbt_run
+          depends_on:
+            - task_key: extract_prices
           environment_key: default
           dbt_task:
             project_directory: ../
-            # The default schema, catalog, etc. are defined in ../dbt_profiles/profiles.yml
             profiles_directory: dbt_profiles/
             commands:
-              # The dbt commands to run (see also the dev/prod profiles in dbt_profiles/profiles.yml)
               - 'dbt deps --target=${bundle.target}'
-              - 'dbt seed --target=${bundle.target}'
               - 'dbt run --target=${bundle.target}'
+
+        - task_key: dbt_test
+          depends_on:
+            - task_key: dbt_run
+          environment_key: default
+          dbt_task:
+            project_directory: ../
+            profiles_directory: dbt_profiles/
+            commands:
+              - 'dbt deps --target=${bundle.target}'
+              - 'dbt test --target=${bundle.target}'
 
       environments:
         - environment_key: default
@@ -32,3 +57,8 @@ resources:
             environment_version: "2"
             dependencies:
               - dbt-databricks>=1.8.0,<2.0.0
+        - environment_key: python_env
+          spec:
+            environment_version: "3"
+            dependencies:
+              - yfinance>=0.2.43

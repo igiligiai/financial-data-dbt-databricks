@@ -15,6 +15,10 @@ seed-paths: ["src/seeds"]
 macro-paths: ["src/macros"]
 snapshot-paths: ["src/snapshots"]
 
+flags:
+  use_materialization_v2: True
+  use_concurrent_microbatch: True
+
 clean-targets: # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
@@ -27,6 +31,9 @@ clean-targets: # directories to be removed by `dbt clean`
 # individual model files using the `{{ config(...) }}` macro.
 models:
   financial_data_dbt_databricks:
-    # Config indicated by + and applies to all files under models/example/
-    example:
+    bronze:
+      +materialized: view
+    silver:
+      +materialized: table
+    gold:
       +materialized: view
