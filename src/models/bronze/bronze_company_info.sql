@@ -60,7 +60,6 @@ select
   peg_ratio :: STRING                   as peg_ratio,
   trailing_eps :: STRING                as trailing_eps,
   forward_eps :: STRING                 as forward_eps,
-  error :: STRING                       as error,
   _metadata.file_path                   as _source_file,
   _metadata.file_modification_time      as _file_modified_at
 from read_files(

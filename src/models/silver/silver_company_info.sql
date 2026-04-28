@@ -6,7 +6,6 @@
 
 with source as (
   select * from {{ ref('bronze_company_info') }}
-  where error is null
 ),
 
 typed as (
@@ -87,6 +86,7 @@ typed as (
     _file_modified_at
   from source
   where symbol is not null
+    and currency is not null
 ),
 
 deduplicated as (
