@@ -137,7 +137,7 @@ models:
         data_tests:
           - accepted_values:
               arguments:
-                values: ['NEAR_52W_HIGH', 'NEAR_52W_LOW']
+                values: ['NEAR_52W_HIGH', 'MID_RANGE', 'NEAR_52W_LOW']
 
   - name: gold_price_analytics
     description: "Per-symbol technical analytics: trend signals, 52-week positioning, and daily changes"
