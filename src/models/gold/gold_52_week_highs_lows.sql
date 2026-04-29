@@ -52,5 +52,4 @@ select
 from classified as cl
 join {{ ref('silver_company_info') }} as c
   on cl.symbol = c.symbol
-where cl.proximity_signal != 'MID_RANGE'
 order by cl.range_position_pct desc
