@@ -1,0 +1,33 @@
+resources:
+  jobs:
+    financial_data_weekly_maintenance_job:
+      name: financial_data_weekly_maintenance_job
+      email_notifications:
+        on_failure:
+          - anthony.igiligi@gmail.com
+      notification_settings:
+        no_alert_for_skipped_runs: true
+        no_alert_for_canceled_runs: true
+
+      trigger:
+        periodic:
+          interval: 1
+          unit: WEEKS
+
+      tasks:
+        - task_key: dbt_weekly_optimize
+          environment_key: default
+          dbt_task:
+            project_directory: ../
+            profiles_directory: dbt_profiles/
+            commands:
+              - 'dbt deps --target=${bundle.target}'
+              - 'dbt run-operation weekly_optimize --target=${bundle.target}'
+
+      environments:
+        - environment_key: default
+          spec:
+            environment_version: "2"
+            dependencies:
+              - dbt-databricks>=1.8.0,<2.0.0
+              
