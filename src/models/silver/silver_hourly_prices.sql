@@ -3,16 +3,16 @@
     materialized='incremental',
     incremental_strategy='merge',
     unique_key=['symbol', 'extracted_at'],
-    on_schema_change='append_new_columns',
-    post_hook='OPTIMIZE {{ this }} ZORDER BY (extracted_at, symbol)'
+    on_schema_change='append_new_columns'
   )
 }}
 
 with source as (
   select * from {{ ref('bronze_hourly_prices') }}
   {% if is_incremental() %}
-  where to_timestamp(extracted_at, 'yyyy-MM-dd HH:mm:ss') > (
-    select max(extracted_at) from {{ this }}
+  where to_timestamp(extracted_at, 'yyyy-MM-dd HH:mm:ss') >= (
+    select coalesce(max(extracted_at), to_timestamp('1900-01-01 00:00:00', 'yyyy-MM-dd HH:mm:ss')) - interval 2 days
+    from {{ this }}
   )
   {% endif %}
 ),
