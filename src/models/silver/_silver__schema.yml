@@ -3,6 +3,10 @@ version: 2
 models:
   - name: silver_hourly_prices
     description: "Cleaned and typed hourly price snapshots, deduplicated per symbol and extraction hour"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [symbol, extracted_at]
     columns:
       - name: symbol
         description: "Stock ticker symbol"
@@ -21,6 +25,10 @@ models:
 
   - name: silver_company_info
     description: "Cleaned and typed company profiles, deduplicated per symbol and extraction"
+    data_tests:
+      - dbt_utils.unique_combination_of_columns:
+          arguments:
+            combination_of_columns: [symbol, extracted_at]
     columns:
       - name: symbol
         description: "Stock ticker symbol"

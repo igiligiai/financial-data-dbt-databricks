@@ -91,6 +91,10 @@ models:
         description: "Full company name"
       - name: sector
         description: "Market sector"
+      - name: trading_days
+        description: "Number of distinct trading days observed"
+      - name: avg_intraday_range
+        description: "Average intraday high-low range (price)"
       - name: avg_intraday_range_pct
         description: "Average intraday high-low range as a percentage"
       - name: max_intraday_range_pct
@@ -118,6 +122,8 @@ models:
         description: "Today's volume divided by the 21-day average"
       - name: volume_z_score
         description: "Z-score of today's volume relative to 21-day distribution"
+      - name: trading_days
+        description: "Number of distinct trading days in the comparison window"
 
   - name: gold_52_week_category
     description: "All stocks categorised by position relative to their 52-week range: within 5% of the high, within 5% of the low, or mid-range"
@@ -125,11 +131,18 @@ models:
       - name: symbol
         description: "Stock ticker symbol"
         data_tests:
+          - unique
           - not_null
       - name: company_name
         description: "Full company name"
       - name: sector
         description: "Market sector"
+      - name: current_price
+        description: "Latest price on the extraction date"
+      - name: fifty_two_week_high
+        description: "52-week high price"
+      - name: fifty_two_week_low
+        description: "52-week low price"
       - name: range_position_pct
         description: "Position within 52-week range (0=low, 100=high)"
       - name: proximity_signal
@@ -138,6 +151,8 @@ models:
           - accepted_values:
               arguments:
                 values: ['NEAR_52W_HIGH', 'MID_RANGE', 'NEAR_52W_LOW']
+      - name: extracted_at_date
+        description: "Date of the latest price extraction"
 
   - name: gold_price_analytics
     description: "Per-symbol technical analytics: trend signals, 52-week positioning, and daily changes"
