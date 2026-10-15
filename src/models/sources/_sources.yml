@@ -2,7 +2,15 @@ version: 2
 
 sources:
   - name: yfinance_raw
-    description: "Raw financial data from yfinance API, stored as JSON in Unity Catalog Volumes"
-    config:
-      meta:
-        volume_path: "/Volumes/api_data/raw/yfinance"
+    description: "Raw financial data from yfinance API, stored as JSON files in Unity Catalog Volumes and read with read_files()"
+    tables:
+      - name: hourly_prices
+        description: "Hourly price snapshots, one JSON file per extraction"
+        config:
+          meta:
+            volume_path: "/Volumes/api_data/raw/yfinance/hourly_prices"
+      - name: company_info
+        description: "Company profile and fundamentals, one JSON file per extraction"
+        config:
+          meta:
+            volume_path: "/Volumes/api_data/raw/yfinance/company_info"

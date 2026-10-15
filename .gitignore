@@ -16,3 +16,4 @@ dbt_packages/
 dbt_modules/
 logs/
 output/
+.user.yml
