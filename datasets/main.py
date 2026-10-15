@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Dict, List
 from databricks.sdk import WorkspaceClient
 from datetime import datetime, timezone
-from datasets.stock_prices import (extract_company_info,
-                                   extract_hourly_prices,
-                                   write_json)
+from .stock_prices import (extract_company_info,
+                            extract_hourly_prices,
+                            write_json)
 from dotenv import load_dotenv
 
 load_dotenv()

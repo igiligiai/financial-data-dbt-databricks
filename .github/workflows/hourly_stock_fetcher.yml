@@ -26,4 +26,4 @@ jobs:
         env:
           DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
-        run: python datasets/main.py
+        run: python -m datasets.main
