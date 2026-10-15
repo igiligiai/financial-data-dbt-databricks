@@ -4,11 +4,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Tuple
 
+import requests
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
-NASDAQ_100_SYMBOLS = [
+SYMBOLS_CACHE_FILE = Path(__file__).parent / "output" / "symbols.json"
+SYMBOLS_CACHE_MAX_AGE_DAYS = 7
+NASDAQ_100_API_URL = "https://api.nasdaq.com/api/quote/list-type/nasdaq100"
+
+# Fallback used when the live fetch fails and no cache exists
+DEFAULT_NASDAQ_100_SYMBOLS = [
     "AAPL", "ABNB", "ADBE", "ADI", "ADP", "ADSK", "AEP", "AMAT", "AMD",
     "AMGN", "AMZN", "ANSS", "APP", "ARM", "ASML", "AVGO", "AZN", "BIIB",
     "BKNG", "BKR", "CDNS", "CDW", "CEG", "CHTR", "CMCSA", "COIN", "COST",
@@ -22,6 +28,45 @@ NASDAQ_100_SYMBOLS = [
     "SMCI", "SNPS", "TEAM", "TMUS", "TSLA", "TTD", "TTWO", "TXN", "VRSK",
     "VRTX", "WBD", "WDAY", "XEL", "ZS",
 ]
+
+
+def fetch_nasdaq_100_symbols() -> List[str]:
+    """Fetch current NASDAQ-100 constituents from the Nasdaq API (Yahoo-style tickers)."""
+    resp = requests.get(
+        NASDAQ_100_API_URL,
+        headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+        timeout=15,
+    )
+    resp.raise_for_status()
+    rows = resp.json()["data"]["data"]["rows"]
+    symbols = sorted({r["symbol"].strip().replace(".", "-") for r in rows})
+    if len(symbols) < 90:
+        raise ValueError(f"Unexpected symbol count: {len(symbols)}")
+    return symbols
+
+
+def get_nasdaq_100_symbols(cache_file: Path = SYMBOLS_CACHE_FILE) -> List[str]:
+    """Return symbols from a fresh cache, else fetch live, else stale cache, else defaults."""
+    cached = None
+    if cache_file.exists():
+        try:
+            cached = json.loads(cache_file.read_text(encoding="utf-8"))
+            updated = datetime.fromisoformat(cached["updated_at"])
+            if (datetime.now(timezone.utc) - updated).days < SYMBOLS_CACHE_MAX_AGE_DAYS:
+                return cached["symbols"]
+        except (ValueError, KeyError, TypeError, OSError):
+            cached = None
+    try:
+        symbols = fetch_nasdaq_100_symbols()
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(
+            json.dumps({"updated_at": datetime.now(timezone.utc).isoformat(), "symbols": symbols}, indent=2),
+            encoding="utf-8",
+        )
+        return symbols
+    except Exception as e:
+        logger.warning("Symbol refresh failed (%s); using %s", e, "stale cache" if cached else "defaults")
+        return cached["symbols"] if cached else DEFAULT_NASDAQ_100_SYMBOLS
 
 
 def _safe_round(value, decimals: int = 2):
@@ -182,7 +227,7 @@ def extract_all(symbols: List[str] | None = None) -> Tuple[List[Dict], List[Dict
     Returns:
         (hourly_prices, company_info) lists of dicts.
     """
-    symbols = symbols or NASDAQ_100_SYMBOLS
+    symbols = symbols or get_nasdaq_100_symbols()
     hourly, company = [], []
     for sym in symbols:
         logger.info("Fetching data for %s", sym)
