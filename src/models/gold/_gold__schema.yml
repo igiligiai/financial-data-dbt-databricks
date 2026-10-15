@@ -119,8 +119,8 @@ models:
       - name: volume_z_score
         description: "Z-score of today's volume relative to 21-day distribution"
 
-  - name: gold_52_week_highs_lows
-    description: "Stocks trading within 5% of their 52-week high or low"
+  - name: gold_52_week_category
+    description: "All stocks categorised by position relative to their 52-week range: within 5% of the high, within 5% of the low, or mid-range"
     columns:
       - name: symbol
         description: "Stock ticker symbol"
@@ -133,7 +133,7 @@ models:
       - name: range_position_pct
         description: "Position within 52-week range (0=low, 100=high)"
       - name: proximity_signal
-        description: "NEAR_52W_HIGH or NEAR_52W_LOW"
+        description: "NEAR_52W_HIGH, NEAR_52W_LOW or MID_RANGE"
         data_tests:
           - accepted_values:
               arguments:
