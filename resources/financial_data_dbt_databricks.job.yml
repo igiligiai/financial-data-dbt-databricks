@@ -18,14 +18,14 @@ resources:
         pause_status: ${var.trigger_status}
 
       tasks:
-        - task_key: extract_prices
-          environment_key: python_env
-          spark_python_task:
-            python_file: ../datasets/databricks_extractor.py
+        # - task_key: extract_prices
+        #   environment_key: python_env
+        #   spark_python_task:
+        #     python_file: ../datasets/databricks_extractor.py
 
         - task_key: dbt_run
-          depends_on:
-            - task_key: extract_prices
+          # depends_on:
+          #   - task_key: extract_prices
           environment_key: default
           dbt_task:
             project_directory: ../

@@ -35,8 +35,8 @@ models:
       - name: vwap
         description: "Volume-weighted average price across sector"
 
-  - name: gold_best_performing_today
-    description: "Top 10 best performing stocks today by daily gain percentage (day high vs previous close)"
+  - name: gold_best_performing_yesterday
+    description: "Best performing stocks on the last completed trading day by daily gain percentage (day high vs previous close)"
     columns:
       - name: symbol
         description: "Stock ticker symbol"
