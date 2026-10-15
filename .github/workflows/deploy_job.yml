@@ -8,8 +8,6 @@ on:
         required: true
         type: string
     secrets:
-      DATABRICKS_HOST:
-        required: true
       DATABRICKS_TOKEN:
         required: true
 
@@ -26,7 +24,7 @@ jobs:
 
       - name: Validate Databricks bundle (dev)
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle validate -t dev
 
@@ -44,6 +42,6 @@ jobs:
 
       - name: Deploy Databricks bundle
         env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+          DATABRICKS_HOST: ${{ vars.DATABRICKS_HOST }}
           DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
         run: databricks bundle deploy --target "${{ inputs.target }}"
