@@ -9,10 +9,11 @@ resources:
         no_alert_for_skipped_runs: true
         no_alert_for_canceled_runs: true
 
-      trigger:
-        periodic:
-          interval: 1
-          unit: WEEKS
+      schedule:
+        # Once per week on Monday at 06:00 (Quartz cron syntax)
+        quartz_cron_expression: "0 0 6 ? * MON"
+        timezone_id: Europe/Berlin
+        pause_status: ${var.trigger_status}
 
       tasks:
         - task_key: dbt_weekly_optimize

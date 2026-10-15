@@ -11,17 +11,11 @@ resources:
         no_alert_for_skipped_runs: true
         no_alert_for_canceled_runs: true
 
-      trigger:
-        # Run this job every day, exactly one day from the last run; see https://docs.databricks.com/api/workspace/jobs/create#trigger
-        periodic:
-          interval: 1
-          unit: HOURS
-
-      email_notifications:
-       on_failure:
-         - anthony.igiligi@gmail.com
-       on_success:
-         - anthony.igiligi@gmail.com
+      schedule:
+        # Once per day at 09:00, Monday to Friday (Quartz cron syntax)
+        quartz_cron_expression: "0 0 9 ? * MON-FRI"
+        timezone_id: Europe/Berlin
+        pause_status: ${var.trigger_status}
 
       tasks:
         - task_key: extract_prices
