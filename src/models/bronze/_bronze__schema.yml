@@ -6,23 +6,35 @@ models:
     columns:
       - name: symbol
         description: "Stock ticker symbol"
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
       - name: extracted_at
         description: "Timestamp when data was extracted (string)"
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
       - name: current_price
         description: "Current stock price at extraction time"
-      - name: error
-        description: "Error message if extraction failed; NULL for valid records"
 
   - name: bronze_company_info
     description: "Raw company profile data ingested from JSON files in Unity Catalog Volumes"
     columns:
       - name: symbol
         description: "Stock ticker symbol"
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
       - name: extracted_at
         description: "Timestamp when data was extracted (string)"
+        data_tests:
+          - not_null:
+              config:
+                severity: warn
       - name: company_name
         description: "Full company name"
       - name: sector
         description: "Market sector classification"
-      - name: error
-        description: "Error message if extraction failed; NULL for valid records"

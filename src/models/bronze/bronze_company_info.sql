@@ -63,7 +63,7 @@ select
   _metadata.file_path                   as _source_file,
   _metadata.file_modification_time      as _file_modified_at
 from read_files(
-  '/Volumes/api_data/raw/yfinance/company_info',
+  '{{ source_volume_path("yfinance_raw", "company_info") }}',
   format => 'json',
   multiLine => true
 )

@@ -6,6 +6,7 @@ bundle:
   uuid: 5ad16a38-a603-4083-9df9-110d136abfc3
 
 include:
+  - variables.yml
   - resources/*.yml
   - resources/*/*.yml
 
@@ -24,6 +25,8 @@ targets:
 
   prod:
     mode: production
+    variables:
+      trigger_status: UNPAUSED
     workspace:
       host: https://dbc-3390368a-2a91.cloud.databricks.com
       # We explicitly deploy to /Workspace/Users/anthony.igiligi@gmail.com to make sure we only have a single copy.

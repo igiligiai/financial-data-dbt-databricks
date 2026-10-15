@@ -11,8 +11,12 @@ with best as (
     max_by(day_high, extracted_at)      as day_high,
     any_value(previous_close)           as previous_close
   from {{ ref('silver_hourly_prices') }}
-  where extracted_at >= date_trunc('day', current_date())
-    and extracted_at <  date_trunc('day', current_date() + interval 1 day)
+  where cast(extracted_at as date) = (
+    -- last completed trading day (e.g. Friday when run on Monday)
+    select max(cast(extracted_at as date))
+    from {{ ref('silver_hourly_prices') }}
+    where cast(extracted_at as date) < current_date()
+  )
   group by symbol
 )
 

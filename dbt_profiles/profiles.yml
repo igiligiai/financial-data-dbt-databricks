@@ -14,7 +14,7 @@ financial_data_dbt_databricks:
       type: databricks
       method: http
       catalog: workspace
-      schema: "finance"
+      schema: default
 
       http_path: /sql/1.0/warehouses/1134b102df4efb1b
 

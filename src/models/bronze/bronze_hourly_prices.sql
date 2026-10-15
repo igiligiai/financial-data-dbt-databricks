@@ -20,7 +20,7 @@ select
   _metadata.file_path                 as _source_file,
   _metadata.file_modification_time    as _file_modified_at
 from read_files(
-  '/Volumes/api_data/raw/yfinance/hourly_prices',
+  '{{ source_volume_path("yfinance_raw", "hourly_prices") }}',
   format => 'json',
   multiLine => true
 )

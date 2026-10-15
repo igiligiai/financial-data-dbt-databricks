@@ -1,0 +1,4 @@
+variables:
+  trigger_status:
+    description: Pause status of the job schedule (PAUSED or UNPAUSED)
+    default: PAUSED
