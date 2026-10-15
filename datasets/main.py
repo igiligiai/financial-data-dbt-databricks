@@ -3,12 +3,9 @@ import os
 import io
 import logging
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from databricks.sdk import WorkspaceClient
-from datetime import datetime, timezone
-from .stock_prices import (extract_company_info,
-                            extract_hourly_prices,
-                            write_json)
+from .stock_prices import extract_all, write_json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -31,15 +28,13 @@ def check_databricks_connection():
     except requests.exceptions.RequestException as e:
         print(f"Connection failed: {e}")
 
-def run_hourly_extraction(symbols: List[str] | None = None) -> Path:
-    """Run a full hourly price extraction and persist to JSON."""
-    data = extract_hourly_prices(symbols)
-    return write_json(data, "hourly_prices", path)
-
-def run_company_info_extraction(symbols: List[str] | None = None) -> Path:
-    """Run a full company info extraction and persist to JSON."""
-    data = extract_company_info(symbols)
-    return write_json(data, "company_info", path)
+def run_extraction(symbols: List[str] | None = None) -> Tuple[Path, Path]:
+    """Fetch yfinance once per ticker and persist hourly prices and company info to JSON."""
+    hourly, company = extract_all(symbols)
+    return (
+        write_json(hourly, "hourly_prices", path),
+        write_json(company, "company_info", path, timestamped=False),
+    )
 
 def upload_files_to_databricks(local_path: Path, databricks_path: str):
     """Upload a local file to Databricks using the REST API."""
@@ -60,19 +55,16 @@ def upload_files_to_databricks(local_path: Path, databricks_path: str):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H")
-    hourly_prices = f"hourly_prices_{ts}0000.json"
-
-    print("=== Extracting hourly price data ===")
-    hourly_path = run_hourly_extraction()
+    print("=== Extracting hourly prices and company info ===")
+    hourly_path, company_path = run_extraction()
     print(f"Hourly data saved to: {hourly_path}")
-
-    # print("\n=== Extracting company info ===")
-    # company_path = run_company_info_extraction()
-    # print(f"Company info saved to: {company_path}")
+    print(f"Company info saved to: {company_path}")
 
     # check_databricks_connection()
     upload_files_to_databricks(
-        path / hourly_prices, f"{BASE_PATH}/hourly_prices/{hourly_prices}")
-    # upload_files_to_databricks(
-    #     path / "company_info.json", f"{BASE_PATH}/company_info/company_info.json")
+        hourly_path,
+        f"{BASE_PATH}/hourly_prices/{hourly_path.name}"
+)
+    upload_files_to_databricks(
+        company_path, 
+        f"{BASE_PATH}/company_info/company_info.json")

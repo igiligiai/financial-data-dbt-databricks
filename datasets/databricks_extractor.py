@@ -4,29 +4,20 @@ from typing import Dict, List
 import logging
 
 try:
-    from datasets.stock_prices import (
-        extract_company_info,
-        extract_hourly_prices,
-    )
+    from datasets.stock_prices import extract_all
 except ModuleNotFoundError:
     # Supports direct execution: `python datasets/databricks_extractor.py`
-    from stock_prices import extract_company_info, extract_hourly_prices
+    from stock_prices import extract_all
 
 BASE_PATH = "/Volumes/api_data/raw/yfinance"
 
 
-def run_hourly_extraction(symbols: List[str] | None = None):
-    """Run a full hourly price extraction and persist to JSON."""
-    data = extract_hourly_prices(symbols)
-    dir_path = f"{BASE_PATH}/hourly_prices"
-    return upload_to_volumes(data, dir_path, file_name="hourly_prices")
-
-
-def run_company_info_extraction(symbols: List[str] | None = None):
-    """Run a full company info extraction and persist to JSON."""
-    data = extract_company_info(symbols)
-    dir_path = f"{BASE_PATH}/company_info"
-    return upload_to_volumes(data, dir_path, file_name="company_info")
+def run_extraction(symbols: List[str] | None = None):
+    """Fetch yfinance once per ticker and upload hourly prices and company info."""
+    hourly, company = extract_all(symbols)
+    upload_to_volumes(hourly, f"{BASE_PATH}/hourly_prices", file_name="hourly_prices")
+    upload_to_volumes(company, f"{BASE_PATH}/company_info", file_name="company_info")
+    return hourly, company
 
 
 def upload_to_volumes(data: Dict, dir_path: str, file_name: str):
@@ -48,5 +39,4 @@ def upload_to_volumes(data: Dict, dir_path: str, file_name: str):
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
-    run_hourly_extraction()
-    run_company_info_extraction()
+    run_extraction()

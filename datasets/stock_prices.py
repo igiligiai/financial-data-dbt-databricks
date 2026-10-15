@@ -2,7 +2,7 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import yfinance as yf
 
@@ -39,7 +39,7 @@ def _timestamp_iso(epoch) -> str | None:
     return None
 
 
-def get_hourly_stock_data(symbol: str) -> Dict:
+def get_hourly_stock_data(symbol: str, info: Dict | None = None) -> Dict:
     """
     Extract hourly price snapshot for a single symbol.
 
@@ -54,7 +54,8 @@ def get_hourly_stock_data(symbol: str) -> Dict:
         if not symbol:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
-        info = yf.Ticker(symbol).info or {}
+        if info is None:
+            info = yf.Ticker(symbol).info or {}
         return {
             "symbol": symbol,
             "extracted_at": datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S"),
@@ -74,7 +75,7 @@ def get_hourly_stock_data(symbol: str) -> Dict:
         return {"error": "Lookup Error", "symbol": symbol, "message": str(e)}
 
 
-def get_company_info(symbol: str) -> Dict:
+def get_company_info(symbol: str, info: Dict | None = None) -> Dict:
     """
     Extract general (mostly static) company information for a single symbol.
 
@@ -88,7 +89,8 @@ def get_company_info(symbol: str) -> Dict:
         if not symbol:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
-        info = yf.Ticker(symbol).info or {}
+        if info is None:
+            info = yf.Ticker(symbol).info or {}
 
         return {
             # Identity & profile
@@ -174,31 +176,46 @@ def get_company_info(symbol: str) -> Dict:
         return {"error": "Lookup Error", "symbol": symbol, "message": str(e)}
 
 
+def extract_all(symbols: List[str] | None = None) -> Tuple[List[Dict], List[Dict]]:
+    """Fetch yfinance info once per symbol and derive both hourly prices and company info.
+
+    Returns:
+        (hourly_prices, company_info) lists of dicts.
+    """
+    symbols = symbols or NASDAQ_100_SYMBOLS
+    hourly, company = [], []
+    for sym in symbols:
+        logger.info("Fetching data for %s", sym)
+        clean = sym.upper().strip()
+        try:
+            info = yf.Ticker(clean).info or {} if clean else None
+        except Exception as e:
+            logger.error("Fetch failed for %s: %s", clean, e)
+            err = {"error": "Lookup Error", "symbol": clean, "message": str(e)}
+            hourly.append(err)
+            company.append(dict(err))
+            continue
+        hourly.append(get_hourly_stock_data(clean, info))
+        company.append(get_company_info(clean, info))
+    return hourly, company
+
+
 def extract_hourly_prices(symbols: List[str] | None = None) -> List[Dict]:
     """Fetch hourly price snapshots for all given symbols (default: NASDAQ 100)."""
-    symbols = symbols or NASDAQ_100_SYMBOLS
-    results = []
-    for sym in symbols:
-        logger.info("Fetching hourly data for %s", sym)
-        results.append(get_hourly_stock_data(sym))
-    return results
+    return extract_all(symbols)[0]
 
 
 def extract_company_info(symbols: List[str] | None = None) -> List[Dict]:
     """Fetch company info for all given symbols (default: NASDAQ 100)."""
-    symbols = symbols or NASDAQ_100_SYMBOLS
-    results = []
-    for sym in symbols:
-        logger.info("Fetching company info for %s", sym)
-        results.append(get_company_info(sym))
-    return results
+    return extract_all(symbols)[1]
 
 
-def write_json(data: List[Dict], filename: str, path: Path) -> Path:
-    """Write a list of dicts to a timestamped JSON file under DATA_DIR."""
+def write_json(data: List[Dict], filename: str, path: Path, timestamped: bool = True) -> Path:
+    """Write a list of dicts to a JSON file; hourly files get a timestamp suffix."""
     path.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H")
-    path_str = path / f"{filename}_{ts}0000.json"
+    name = f"{filename}_{ts}0000.json" if timestamped else f"{filename}.json"
+    path_str = path / name
     with open(path_str, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=str)
     logger.info("Wrote %d records to %s", len(data), path_str)
