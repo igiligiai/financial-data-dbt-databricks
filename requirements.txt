@@ -1,0 +1,4 @@
+yfinance>=0.2.43
+python-dotenv>=1.2.2
+requests>=2.33.1
+databricks-sdk>=0.41.0,<0.78.0

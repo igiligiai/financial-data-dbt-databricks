@@ -2,13 +2,19 @@ import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
+import requests
 import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
-NASDAQ_100_SYMBOLS = [
+SYMBOLS_CACHE_FILE = Path(__file__).parent / "output" / "symbols.json"
+SYMBOLS_CACHE_MAX_AGE_DAYS = 7
+NASDAQ_100_API_URL = "https://api.nasdaq.com/api/quote/list-type/nasdaq100"
+
+# Fallback used when the live fetch fails and no cache exists
+DEFAULT_NASDAQ_100_SYMBOLS = [
     "AAPL", "ABNB", "ADBE", "ADI", "ADP", "ADSK", "AEP", "AMAT", "AMD",
     "AMGN", "AMZN", "ANSS", "APP", "ARM", "ASML", "AVGO", "AZN", "BIIB",
     "BKNG", "BKR", "CDNS", "CDW", "CEG", "CHTR", "CMCSA", "COIN", "COST",
@@ -22,6 +28,45 @@ NASDAQ_100_SYMBOLS = [
     "SMCI", "SNPS", "TEAM", "TMUS", "TSLA", "TTD", "TTWO", "TXN", "VRSK",
     "VRTX", "WBD", "WDAY", "XEL", "ZS",
 ]
+
+
+def fetch_nasdaq_100_symbols() -> List[str]:
+    """Fetch current NASDAQ-100 constituents from the Nasdaq API (Yahoo-style tickers)."""
+    resp = requests.get(
+        NASDAQ_100_API_URL,
+        headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+        timeout=15,
+    )
+    resp.raise_for_status()
+    rows = resp.json()["data"]["data"]["rows"]
+    symbols = sorted({r["symbol"].strip().replace(".", "-") for r in rows})
+    if len(symbols) < 90:
+        raise ValueError(f"Unexpected symbol count: {len(symbols)}")
+    return symbols
+
+
+def get_nasdaq_100_symbols(cache_file: Path = SYMBOLS_CACHE_FILE) -> List[str]:
+    """Return symbols from a fresh cache, else fetch live, else stale cache, else defaults."""
+    cached = None
+    if cache_file.exists():
+        try:
+            cached = json.loads(cache_file.read_text(encoding="utf-8"))
+            updated = datetime.fromisoformat(cached["updated_at"])
+            if (datetime.now(timezone.utc) - updated).days < SYMBOLS_CACHE_MAX_AGE_DAYS:
+                return cached["symbols"]
+        except (ValueError, KeyError, TypeError, OSError):
+            cached = None
+    try:
+        symbols = fetch_nasdaq_100_symbols()
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(
+            json.dumps({"updated_at": datetime.now(timezone.utc).isoformat(), "symbols": symbols}, indent=2),
+            encoding="utf-8",
+        )
+        return symbols
+    except Exception as e:
+        logger.warning("Symbol refresh failed (%s); using %s", e, "stale cache" if cached else "defaults")
+        return cached["symbols"] if cached else DEFAULT_NASDAQ_100_SYMBOLS
 
 
 def _safe_round(value, decimals: int = 2):
@@ -39,7 +84,7 @@ def _timestamp_iso(epoch) -> str | None:
     return None
 
 
-def get_hourly_stock_data(symbol: str) -> Dict:
+def get_hourly_stock_data(symbol: str, info: Dict | None = None) -> Dict:
     """
     Extract hourly price snapshot for a single symbol.
 
@@ -54,7 +99,8 @@ def get_hourly_stock_data(symbol: str) -> Dict:
         if not symbol:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
-        info = yf.Ticker(symbol).info or {}
+        if info is None:
+            info = yf.Ticker(symbol).info or {}
         return {
             "symbol": symbol,
             "extracted_at": datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S"),
@@ -74,7 +120,7 @@ def get_hourly_stock_data(symbol: str) -> Dict:
         return {"error": "Lookup Error", "symbol": symbol, "message": str(e)}
 
 
-def get_company_info(symbol: str) -> Dict:
+def get_company_info(symbol: str, info: Dict | None = None) -> Dict:
     """
     Extract general (mostly static) company information for a single symbol.
 
@@ -88,7 +134,8 @@ def get_company_info(symbol: str) -> Dict:
         if not symbol:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
-        info = yf.Ticker(symbol).info or {}
+        if info is None:
+            info = yf.Ticker(symbol).info or {}
 
         return {
             # Identity & profile
@@ -174,31 +221,46 @@ def get_company_info(symbol: str) -> Dict:
         return {"error": "Lookup Error", "symbol": symbol, "message": str(e)}
 
 
+def extract_all(symbols: List[str] | None = None) -> Tuple[List[Dict], List[Dict]]:
+    """Fetch yfinance info once per symbol and derive both hourly prices and company info.
+
+    Returns:
+        (hourly_prices, company_info) lists of dicts.
+    """
+    symbols = symbols or get_nasdaq_100_symbols()
+    hourly, company = [], []
+    for sym in symbols:
+        logger.info("Fetching data for %s", sym)
+        clean = sym.upper().strip()
+        try:
+            info = yf.Ticker(clean).info or {} if clean else None
+        except Exception as e:
+            logger.error("Fetch failed for %s: %s", clean, e)
+            err = {"error": "Lookup Error", "symbol": clean, "message": str(e)}
+            hourly.append(err)
+            company.append(dict(err))
+            continue
+        hourly.append(get_hourly_stock_data(clean, info))
+        company.append(get_company_info(clean, info))
+    return hourly, company
+
+
 def extract_hourly_prices(symbols: List[str] | None = None) -> List[Dict]:
     """Fetch hourly price snapshots for all given symbols (default: NASDAQ 100)."""
-    symbols = symbols or NASDAQ_100_SYMBOLS
-    results = []
-    for sym in symbols:
-        logger.info("Fetching hourly data for %s", sym)
-        results.append(get_hourly_stock_data(sym))
-    return results
+    return extract_all(symbols)[0]
 
 
 def extract_company_info(symbols: List[str] | None = None) -> List[Dict]:
     """Fetch company info for all given symbols (default: NASDAQ 100)."""
-    symbols = symbols or NASDAQ_100_SYMBOLS
-    results = []
-    for sym in symbols:
-        logger.info("Fetching company info for %s", sym)
-        results.append(get_company_info(sym))
-    return results
+    return extract_all(symbols)[1]
 
 
-def write_json(data: List[Dict], filename: str, path: Path) -> Path:
-    """Write a list of dicts to a timestamped JSON file under DATA_DIR."""
+def write_json(data: List[Dict], filename: str, path: Path, timestamped: bool = True) -> Path:
+    """Write a list of dicts to a JSON file; hourly files get a timestamp suffix."""
     path.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H")
-    path_str = path / f"{filename}_{ts}0000.json"
+    name = f"{filename}_{ts}0000.json" if timestamped else f"{filename}.json"
+    path_str = path / name
     with open(path_str, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, default=str)
     logger.info("Wrote %d records to %s", len(data), path_str)
