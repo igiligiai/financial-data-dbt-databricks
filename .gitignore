@@ -9,6 +9,7 @@ __pycache__/
 scratch/**
 !scratch/README.md
 uv.lock
+docs/superpowers/**
 
 # dbt
 target/
