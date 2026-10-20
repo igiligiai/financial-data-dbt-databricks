@@ -160,3 +160,94 @@ $ databricks bundle deploy --target prod
 Optionally, install developer tools such as the Databricks extension for Visual Studio Code from
 https://docs.databricks.com/dev-tools/vscode-ext.html. Third-party extensions
 related to dbt may further enhance your dbt development experience!
+
+## On-demand extraction API on Render
+
+The API starts the same `python -m datasets.main` pipeline as GitHub Actions.
+It fetches the default stock universe and uploads both JSON outputs to Databricks.
+The existing hourly GitHub Actions workflow stays active and independent.
+
+### Local startup
+
+Use Python 3.13 and a virtual environment. From the repository root in PowerShell:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+$env:EXTRACTION_API_TOKEN = "<separate-api-token>"
+$env:DATABRICKS_HOST = "https://<workspace-host>"
+$env:DATABRICKS_TOKEN = "<databricks-token>"
+.\.venv\Scripts\python.exe -m uvicorn datasets.api:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+Values above are placeholders. Do not commit real tokens or secret-bearing files.
+The server requires all three variables at startup. The API token is separate
+from the Databricks token. Databricks authentication and volume permissions are
+checked by extraction, not by the health endpoint.
+
+### Deploy to Render
+
+Create a Blueprint from this repository in Render and select the branch you want
+to deploy (the feature branch before merge). Render reads the root `render.yaml`.
+Supply `EXTRACTION_API_TOKEN`, `DATABRICKS_HOST`, and `DATABRICKS_TOKEN` when
+prompted. Render also supports importing environment values from a local
+secret-bearing file through its dashboard; do not add that file to Git.
+
+The Blueprint selects native Python 3.13.16 and the Free plan, installs
+`requirements.txt`, and uses this Linux start command:
+
+```sh
+python -m uvicorn datasets.api:app --host 0.0.0.0 --port $PORT --workers 1
+```
+
+The service must use one instance and one worker. Do not add worker processes or
+autoscaling: admission and history are process-local. Configure `/health` as the
+health check. Render injects environment variables directly; no custom parser is
+needed. Existing dotenv loading does not override these injected values.
+
+### Trigger and inspect a run
+
+From PowerShell, with the same API token configured in your local environment:
+
+```powershell
+$base = "https://<service-name>.onrender.com"
+$headers = @{ Authorization = "Bearer $env:EXTRACTION_API_TOKEN" }
+$run = Invoke-RestMethod -Method Post -Uri "$base/run-extraction" -Headers $headers
+$run
+Invoke-RestMethod -Method Get -Uri "$base$($run.status_url)" -Headers $headers
+```
+
+The POST responds immediately with HTTP 202 and `run_id`, `status: queued`, and
+`status_url`. This means accepted, not completed. Poll the status URL for
+`queued`, `running`, `succeeded`, or `failed`, plus UTC `submitted_at`,
+`started_at`, `finished_at`, and `error_code` fields. Unset timestamps and error
+codes are JSON null. HTTP 401 means invalid/missing bearer authorization,
+409 means another extraction is active, and 404 means an unknown, expired, or
+pre-restart ID. HTTP 503 can indicate the runner is shutting down or cannot
+safely accept another job after a cleanup failure.
+
+Execution has a five-minute timeout. Failure codes are `launch_failed`,
+`process_failed`, `timeout`, and `shutdown`. Details and child output go to
+Render logs, not HTTP responses. Failed uploads cause the run to fail; uploads
+are not transactional, so one output may already exist when another fails.
+Success means both uploads completed, not that every ticker lookup succeeded:
+the extractor retains its existing per-ticker error records and symbol fallbacks.
+
+### Best-effort limits
+
+History keeps the latest 100 finished runs and the active run in memory.
+Deploys/restarts erase history and can interrupt work. There is no durable queue,
+restart recovery, automatic retry, or exactly-once guarantee. Do not blindly retry
+an ambiguous POST: it may already have started an extraction.
+
+Free services sleep after 15 minutes without inbound traffic, have cold starts,
+and may restart. Background work does not keep them awake. Local JSON files and
+symbol caches are ephemeral; Databricks uploads are the durable output.
+The API lock does not cover GitHub Actions, whose runs can overlap API runs and
+overwrite the same output paths.
+
+For local API tests, install the project test extra and run:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -e ".[test]"
+.\.venv\Scripts\python.exe -m pytest datasets\tests tests\test_render_config.py -q
+```
