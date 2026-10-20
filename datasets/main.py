@@ -37,19 +37,14 @@ def run_extraction(symbols: List[str] | None = None) -> Tuple[Path, Path]:
     )
 
 def upload_files_to_databricks(local_path: Path, databricks_path: str):
-    """Upload a local file to Databricks using the REST API."""
-
+    """Upload a local file; propagate failures to the CLI exit status."""
     if not local_path.exists():
-        print(f"File {local_path} does not exist. Skipping upload.")
-        return
-    print(f"Uploading {local_path} to {databricks_path}...")
-    try:
-        with open(local_path, "rb") as f:
-            binary_data = io.BytesIO(f.read())
-            WS.files.upload(databricks_path, binary_data, overwrite=True)
-        print(f"Successfully uploaded {local_path} to {databricks_path}")
-    except Exception as e:
-        print(f"Failed to upload {local_path}: {e}")
+        raise FileNotFoundError(f"Upload source does not exist: {local_path}")
+    logger.info("Uploading %s to %s", local_path, databricks_path)
+    with local_path.open("rb") as source:
+        binary_data = io.BytesIO(source.read())
+    WS.files.upload(databricks_path, binary_data, overwrite=True)
+    logger.info("Successfully uploaded %s to %s", local_path, databricks_path)
 
 
 if __name__ == "__main__":
