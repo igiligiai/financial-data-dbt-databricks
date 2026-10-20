@@ -23,9 +23,25 @@ resources:
         #   spark_python_task:
         #     python_file: ../datasets/databricks_extractor.py
 
+        - task_key: check_raw_file_freshness
+          sql_task:
+            warehouse_id: ${var.sql_warehouse_id}
+            file:
+              path: ../src/sql/check_raw_file_freshness.sql
+              source: WORKSPACE
+
+        - task_key: raw_files_are_fresh
+          depends_on:
+            - task_key: check_raw_file_freshness
+          condition_task:
+            op: EQUAL_TO
+            left: "{{tasks.check_raw_file_freshness.output.first_row.should_run_dbt}}"
+            right: "1"
+
         - task_key: dbt_run
-          # depends_on:
-          #   - task_key: extract_prices
+          depends_on:
+            - task_key: raw_files_are_fresh
+              outcome: "true"
           environment_key: default
           dbt_task:
             project_directory: ../
