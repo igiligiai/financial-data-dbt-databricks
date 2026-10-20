@@ -99,6 +99,26 @@ Or you can use CI/CD to automate deployment. See
 https://docs.databricks.com/dev-tools/bundles/ci-cd.html for documentation
 on CI/CD setup.
 
+## Raw-file freshness gate
+
+Before running dbt, the main Databricks job checks JSON file modification times
+in both raw yfinance inputs (`hourly_prices` and `company_info`). Each must have
+at least one file modified in the preceding **24 hours**. On Monday, the window
+starts at the previous Friday's same local time in `Europe/Berlin`, including
+weekend uploads and accounting for daylight-saving changes.
+
+Stale or empty inputs **skip both dbt tasks without failing the job**.
+Missing paths, permission errors, and SQL failures still fail the job.
+This checks file arrival, including overwrites, not payload contents or
+`extracted_at`. Ingestion, schedules, and weekly maintenance are unchanged;
+delayed uploads do not trigger an automatic retry.
+
+The check uses the `sql_warehouse_id` bundle variable, defaulting to the existing
+dbt warehouse. Inspect `check_raw_file_freshness` for UTC window boundaries,
+latest modification times, eligible-file counts, and `should_run_dbt`.
+Warehouse tests in `tests/test_raw_file_freshness.py` require authenticated access
+and explicit opt-in via `FRESHNESS_TEST_WAREHOUSE_ID`; otherwise they are skipped.
+
 ## Manually deploying to Databricks with Databricks Asset Bundles
 
 Databricks Asset Bundles can be used to deploy to Databricks and to execute

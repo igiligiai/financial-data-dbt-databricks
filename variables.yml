@@ -2,3 +2,6 @@ variables:
   trigger_status:
     description: Pause status of the job schedule (PAUSED or UNPAUSED)
     default: PAUSED
+  sql_warehouse_id:
+    description: SQL warehouse used by the raw-file freshness check
+    default: "1134b102df4efb1b"
