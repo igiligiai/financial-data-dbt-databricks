@@ -113,6 +113,10 @@ This checks file arrival, including overwrites, not payload contents or
 `extracted_at`. Ingestion, schedules, and weekly maintenance are unchanged;
 delayed uploads do not trigger an automatic retry.
 
+GitHub ingestion is scheduled at minute 17 of each hour from 09:17 through 22:17
+on weekdays in `Europe/Berlin`, avoiding the busiest start-of-hour period.
+Scheduling remains best-effort: runs can still be delayed or dropped.
+
 The check uses the `sql_warehouse_id` bundle variable, defaulting to the existing
 dbt warehouse. Inspect `check_raw_file_freshness` for UTC window boundaries,
 latest modification times, eligible-file counts, and `should_run_dbt`.
