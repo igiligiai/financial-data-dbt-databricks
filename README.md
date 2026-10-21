@@ -181,11 +181,12 @@ $base = "https://<service-name>.onrender.com"
 $headers = @{ Authorization = "Bearer $env:EXTRACTION_API_TOKEN" }
 $run = Invoke-RestMethod -Method Post -Uri "$base/run-extraction" -Headers $headers
 $run
-Invoke-RestMethod -Method Get -Uri "$base$($run.status_url)" -Headers $headers
+Invoke-RestMethod -Method Get -Uri "$base/extractions/$($run.run_id)" -Headers $headers
 ```
 
-The POST responds immediately with HTTP 202 and `run_id`, `status: queued`, and
-`status_url`. This means accepted, not completed. Poll the status URL for
+The POST responds immediately with HTTP 202 and only `run_id` and `status`:
+`{"run_id":"<run-id>","status":"queued"}`. This means accepted, not completed.
+Poll `GET /extractions/{run_id}` for
 `queued`, `running`, `succeeded`, or `failed`, plus UTC `submitted_at`,
 `started_at`, `finished_at`, and `error_code` fields. Unset timestamps and error
 codes are JSON null. HTTP 401 means invalid/missing bearer authorization,
@@ -197,8 +198,29 @@ Execution has a five-minute timeout. Failure codes are `launch_failed`,
 `process_failed`, `timeout`, and `shutdown`. Details and child output go to
 Render logs, not HTTP responses. Failed uploads cause the run to fail; uploads
 are not transactional, so one output may already exist when another fails.
-Success means both uploads completed, not that every ticker lookup succeeded:
-the extractor retains its existing per-ticker error records and symbol fallbacks.
+Success means both uploads completed, not that every ticker lookup succeeded.
+Individual lookup failures remain per-ticker error records when other tickers
+succeed, and symbol fallbacks are unchanged. If every lookup fails, extraction
+fails before writing or uploading either output, and the API reports `failed`
+with `error_code: process_failed`.
+
+### Yahoo Finance authorization errors
+
+`HTTP Error 401: Invalid Crumb` comes from Yahoo's cookie/crumb authorization,
+not the extraction API token or Databricks credentials. A subsequent
+`User is unable to access this feature` is another Yahoo authorization denial.
+yfinance already retries failed requests using its alternate cookie strategy;
+this extractor uses yfinance 1.x and disables hidden exceptions so denied
+requests cannot silently become incomplete stock records.
+
+Successful JSON uploads alone do not establish that Yahoo returned valid data.
+Check per-symbol errors and the uploaded payloads. If the same ticker works
+locally but is consistently denied on Render, investigate the deployed client
+version and Yahoo access from that service's network. Redeploying with a cleared
+build cache can eliminate an outdated dependency, but will not fix a Yahoo
+hosting-network restriction. Persistent denials require an environment with
+permitted Yahoo access or a supported market-data provider; changing API tokens
+or suppressing the log does not restore access.
 
 ### Best-effort limits
 

@@ -43,3 +43,21 @@ def test_missing_file_fails_without_calling_sdk(tmp_path, uploader):
             tmp_path / "missing.json", "/Volumes/test/prices.json"
         )
     client.files.upload.assert_not_called()
+
+
+def test_all_failed_lookups_do_not_write_outputs(tmp_path, uploader, monkeypatch):
+    import datasets.stock_prices as stock_prices
+
+    module, client = uploader
+    monkeypatch.setattr(module, "path", tmp_path)
+
+    def fail(_):
+        raise RuntimeError("Yahoo denied access: HTTP 401")
+
+    monkeypatch.setattr(stock_prices.yf, "Ticker", fail)
+
+    with pytest.raises(RuntimeError, match="All 1 stock lookups failed"):
+        module.run_extraction(["WMT"])
+
+    assert not list(tmp_path.iterdir())
+    client.files.upload.assert_not_called()

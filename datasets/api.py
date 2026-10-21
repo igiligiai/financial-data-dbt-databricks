@@ -19,7 +19,6 @@ security = HTTPBearer(auto_error=False)
 class AcceptedRun(BaseModel):
     run_id: str
     status: Literal["queued"]
-    status_url: str
 
 
 def create_app() -> FastAPI:
@@ -73,7 +72,6 @@ def create_app() -> FastAPI:
         return AcceptedRun(
             run_id=record.run_id,
             status="queued",
-            status_url=f"/extractions/{record.run_id}",
         )
 
     @app.get(

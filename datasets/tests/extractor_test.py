@@ -1,3 +1,8 @@
+from unittest.mock import Mock
+
+import pytest
+from curl_cffi.requests.exceptions import HTTPError
+
 import datasets.stock_prices as stock_prices
 from datasets.stock_prices import _safe_round, _timestamp_iso, get_hourly_stock_data
 
@@ -82,3 +87,61 @@ def test_get_hourly_stock_data_returns_lookup_error_on_ticker_failure(monkeypatc
     assert result["error"] == "Lookup Error"
     assert result["symbol"] == "TSLA"
     assert "ticker failed" in result["message"]
+
+
+@pytest.mark.parametrize("extract", [
+    stock_prices.get_hourly_stock_data, stock_prices.get_company_info,
+])
+def test_yahoo_authorization_error_is_not_hidden(monkeypatch, extract):
+    ticker = stock_prices.yf.Ticker("WMT")
+    response = Mock(text='{"finance":{"error":{"description":"Invalid Crumb"}}}')
+    fetch = Mock(side_effect=HTTPError("HTTP Error 401: Invalid Crumb", response=response))
+    monkeypatch.setattr(ticker._data, "get_raw_json", fetch)
+    monkeypatch.setattr(ticker._quote, "_fetch_additional_info", lambda: {
+        "quoteResponse": {"result": [{"symbol": "WMT", "regularMarketPrice": 100}]}
+    })
+    monkeypatch.setattr(ticker._quote, "_fetch_complementary", lambda: None)
+    monkeypatch.setattr(stock_prices.yf, "Ticker", lambda _: ticker)
+    monkeypatch.setattr(stock_prices.yf.config.debug, "hide_exceptions", True)
+
+    result = extract("WMT")
+
+    assert result["error"] == "Lookup Error"
+    assert "401" in result["message"]
+
+
+def test_all_failed_lookups_fail_the_extraction(monkeypatch):
+    def fail(_):
+        raise RuntimeError("Yahoo denied access: HTTP 401")
+
+    monkeypatch.setattr(stock_prices.yf, "Ticker", fail)
+
+    with pytest.raises(RuntimeError, match="All 2 stock lookups failed"):
+        stock_prices.extract_all(["WMT", "XEL"])
+
+
+@pytest.mark.parametrize("info", [None, {}])
+def test_empty_yahoo_response_is_a_lookup_error(monkeypatch, info):
+    monkeypatch.setattr(stock_prices.yf, "Ticker", lambda _: Mock(info=info))
+
+    result = stock_prices.get_hourly_stock_data("WMT")
+
+    assert result["error"] == "Lookup Error"
+    assert result["message"] == "Yahoo returned no stock data for WMT"
+
+
+def test_partial_lookup_failure_preserves_valid_data(monkeypatch):
+    def ticker(symbol):
+        if symbol == "WMT":
+            raise RuntimeError("Yahoo denied access: HTTP 401")
+        return Mock(info={"currentPrice": 100, "longName": "Xcel Energy"})
+
+    fetch = Mock(side_effect=ticker)
+    monkeypatch.setattr(stock_prices.yf, "Ticker", fetch)
+
+    hourly, company = stock_prices.extract_all(["WMT", "XEL"])
+
+    assert hourly[0]["error"] == company[0]["error"] == "Lookup Error"
+    assert hourly[1]["current_price"] == 100
+    assert company[1]["company_name"] == "Xcel Energy"
+    assert fetch.call_count == 2

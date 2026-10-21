@@ -84,6 +84,15 @@ def _timestamp_iso(epoch) -> str | None:
     return None
 
 
+def _fetch_stock_info(symbol: str) -> Dict:
+    # Otherwise yfinance can log HTTP errors and return incomplete data as success.
+    yf.config.debug.hide_exceptions = False
+    info = yf.Ticker(symbol).info
+    if not info:
+        raise ValueError(f"Yahoo returned no stock data for {symbol}")
+    return info
+
+
 def get_hourly_stock_data(symbol: str, info: Dict | None = None) -> Dict:
     """
     Extract hourly price snapshot for a single symbol.
@@ -100,7 +109,7 @@ def get_hourly_stock_data(symbol: str, info: Dict | None = None) -> Dict:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
         if info is None:
-            info = yf.Ticker(symbol).info or {}
+            info = _fetch_stock_info(symbol)
         return {
             "symbol": symbol,
             "extracted_at": datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0).strftime("%Y-%m-%d %H:%M:%S"),
@@ -135,7 +144,7 @@ def get_company_info(symbol: str, info: Dict | None = None) -> Dict:
             return {"error": "Invalid Symbol", "message": "Symbol cannot be empty"}
 
         if info is None:
-            info = yf.Ticker(symbol).info or {}
+            info = _fetch_stock_info(symbol)
 
         return {
             # Identity & profile
@@ -233,7 +242,7 @@ def extract_all(symbols: List[str] | None = None) -> Tuple[List[Dict], List[Dict
         logger.info("Fetching data for %s", sym)
         clean = sym.upper().strip()
         try:
-            info = yf.Ticker(clean).info or {} if clean else None
+            info = _fetch_stock_info(clean) if clean else None
         except Exception as e:
             logger.error("Fetch failed for %s: %s", clean, e)
             err = {"error": "Lookup Error", "symbol": clean, "message": str(e)}
@@ -242,6 +251,11 @@ def extract_all(symbols: List[str] | None = None) -> Tuple[List[Dict], List[Dict
             continue
         hourly.append(get_hourly_stock_data(clean, info))
         company.append(get_company_info(clean, info))
+    if hourly and all("error" in record for record in hourly):
+        raise RuntimeError(
+            f"All {len(symbols)} stock lookups failed; refusing to upload unusable data. "
+            "See the per-symbol errors above for the Yahoo failure."
+        )
     return hourly, company
 
 

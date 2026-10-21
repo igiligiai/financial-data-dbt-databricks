@@ -50,11 +50,11 @@ def test_acceptance_conflict_and_status(app):
         response = client.post("/run-extraction", headers=AUTH)
         assert response.status_code == 202
         accepted = response.json()
-        assert set(accepted) == {"run_id", "status", "status_url"}
+        assert set(accepted) == {"run_id", "status"}
         assert accepted["status"] == "queued"
-        assert accepted["status_url"] == f"/extractions/{accepted['run_id']}"
+        status_url = f"/extractions/{accepted['run_id']}"
         assert client.post("/run-extraction", headers=AUTH).status_code == 409
-        response = client.get(accepted["status_url"], headers=AUTH)
+        response = client.get(status_url, headers=AUTH)
         assert response.status_code == 200
         record = response.json()
         assert set(record) == {
@@ -69,7 +69,7 @@ def test_acceptance_conflict_and_status(app):
         assert client.get(f"/extractions/{uuid4()}", headers=AUTH).status_code == 404
         assert "test-databricks-token" not in response.text
         for method, path in [
-            ("post", "/run-extraction"), ("get", accepted["status_url"])
+            ("post", "/run-extraction"), ("get", status_url)
         ]:
             unauthorized = getattr(client, method)(path)
             assert unauthorized.status_code == 401
@@ -97,7 +97,9 @@ def test_new_app_has_no_previous_history(app):
     with TestClient(app) as client:
         accepted = client.post("/run-extraction", headers=AUTH).json()
     with TestClient(create_app()) as restarted:
-        assert restarted.get(accepted["status_url"], headers=AUTH).status_code == 404
+        assert restarted.get(
+            f"/extractions/{accepted['run_id']}", headers=AUTH
+        ).status_code == 404
 
 
 @pytest.mark.parametrize("code, status, error_code", [
@@ -113,7 +115,7 @@ def test_terminal_status_is_exposed(app, monkeypatch, code, status, error_code):
     with TestClient(app) as client:
         accepted = client.post("/run-extraction", headers=AUTH).json()
         for _ in range(100):
-            response = client.get(accepted["status_url"], headers=AUTH)
+            response = client.get(f"/extractions/{accepted['run_id']}", headers=AUTH)
             assert response.status_code == 200
             record = response.json()
             if record["status"] in ("succeeded", "failed"):
